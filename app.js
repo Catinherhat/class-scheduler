@@ -9,22 +9,20 @@ const input = document.querySelector('#schedule-input');
 function parseTime(value) { const m=value.trim().match(/(\d{1,2}):(\d{2})\s*(am|pm)/i); if(!m)return null; let h=+m[1]%12; if(m[3].toLowerCase()==='pm')h+=12; return h*60 + +m[2]; }
 function formatTime(mins) { if(mins===null)return 'Time not listed'; const h=Math.floor(mins/60),m=mins%60,s=h>=12?'pm':'am'; return `${h%12||12}:${String(m).padStart(2,'0')}${s}`; }
 function parseMeeting(text) { const cleaned=text.trim().replace(/^\(([^)]+)\)/,'$1').replace(/–/g,'-'); const match=cleaned.match(/^([MTWRFSU]+)\s+(.+)$/i); if(!match)return null; const range=match[2].split(/\s*-\s*/),start=parseTime(range[0]),end=parseTime(range[1]); if(start===null||end===null||range.length!==2)return null; return {days:[...match[1].toUpperCase()].map(d=>dayMap[d]).filter(d=>d!==undefined),start,end}; }
+function parseMeetings(text) { return text.split('+').map(part=>parseMeeting(part.trim())).filter(Boolean); }
 function parseSchedule() {
   const parsed=[],errors=[];
   input.value.split(/\r?\n/).forEach((line,i)=>{
     if(!line.trim())return;
     const p=line.split('|').map(x=>x.trim());
-    const lecture=parseMeeting(p[1]||''), discussion=parseMeeting(p[3]||'');
-    if(p.length!==9 || !lecture || !discussion){errors.push(i+1);return;}
+    const lectures=parseMeetings(p[1]||''), discussion=parseMeeting(p[3]||'');
+    if(p.length!==9 || !lectures.length || !discussion){errors.push(i+1);return;}
     const finalRange=(p[7]||'').split(/\s*[-–]\s*/);
     const finalStart=parseTime(finalRange[0]||''), finalEnd=parseTime(finalRange[1]||'');
     parsed.push({
       id:`${p[0]}-${i}-${Date.now()}`,
       code:p[0],
-      meetings:[
-        {...lecture,label:'Lecture',room:p[2]||'Room not listed'},
-        {...discussion,label:'Discussion',room:p[4]||'Room not listed'}
-      ],
+      meetings:[...lectures.map(lecture=>({...lecture,label:'Lecture',room:p[2]||'Room not listed'})), {...discussion,label:'Discussion',room:p[4]||'Room not listed'}],
       teacher:p[5]||'Teacher not listed',
       finalDate:p[6]||'', finalStart, finalEnd,
       finalRoom:p[8]||'Room not listed', enrolled:false
