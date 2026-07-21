@@ -12,14 +12,14 @@ function parseSchedule() {
   input.value.split(/\r?\n/).forEach((line,index)=>{
     if(!line.trim())return;
     const fields=line.split('|').map(value=>value.trim());
-    const lecture=parseMeeting(fields[1]||''), discussion=parseMeeting(fields[2]||'');
-    if(fields.length!==8||!lecture||!discussion){errors.push(index+1);return;}
+    const lecture=parseMeeting(fields[1]||''), hasDiscussion=!/^n\/?a$/i.test(fields[2]||''), discussion=hasDiscussion?parseMeeting(fields[2]||''):null;
+    if(fields.length!==8||!lecture||(hasDiscussion&&!discussion)){errors.push(index+1);return;}
     const rooms=(fields[4]||'').split('/').map(room=>room.trim());
     const finalRange=(fields[6]||'').replace(/–/g,'-').split(/\s*-\s*/);
     parsed.push({
       id:`${fields[0]}-${index}-${Date.now()}`,
       code:fields[0], courseCode:fields[0].replace(/\s*\[[^\]]+\]\s*$/,'').trim(), sectionCode:(fields[0].match(/\[([^\]]+)\]\s*$/)||[])[1]||'',
-      meetings:[{...lecture,label:'Lecture',room:rooms[0]||'Room not listed'},{...discussion,label:'Discussion',room:rooms[1]||rooms[0]||'Room not listed'}],
+      meetings:[{...lecture,label:'Lecture',room:rooms[0]||'Room not listed'},...(discussion?[{...discussion,label:'Discussion',room:rooms[1]||rooms[0]||'Room not listed'}]:[])],
       teacher:fields[3]||'Teacher not listed', finalDate:fields[5]||'', finalStart:parseTime(finalRange[0]||''), finalEnd:parseTime(finalRange[1]||''), finalRoom:fields[7]||'Room not listed', enrolled:false
     });
   });
