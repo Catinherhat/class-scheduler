@@ -1,6 +1,6 @@
-const sample = `DSC-040A | TR 8:00am-9:20am | F 5:00pm-5:50pm | Jun-Kun Wang | MOS 0113 / FAH 1301 | 2026-12-08 | 8:00am-10:59am | MOS 0113
-CCE-002 | MW 11:00am-12:20pm | Kerry White | PODEM 0274 | 2026-12-08 | 11:30am-2:29pm | PODEM 0274
-CCE-002 | MW 2:00pm-3:20pm | Kerry White | PODEM 0273 | 2026-12-09 | 3:00pm-5:59pm | PODEM 0273`;
+const sample = `SE-101A | (TR) 2:00pm–3:20pm | MOS 0114 | (W) 1:00pm–1:50pm | MOS 0113 | Machel Morrison | 2026-12-10 | 3:00pm–5:59pm | MOS 0114
+CCE-002 | (MW) 11:00am–12:20pm | PODEM 0274 | (F) 10:00am–10:50am | PODEM 0275 | Kerry White | 2026-12-08 | 11:30am–2:29pm | PODEM 0274
+CCE-002 | (MW) 2:00pm–3:20pm | PODEM 0273 | (F) 1:00pm–1:50pm | PODEM 0276 | Kerry White | 2026-12-09 | 3:00pm–5:59pm | PODEM 0273`;
 const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 const dayMap = {M:0,T:1,W:2,R:3,F:4,S:5,U:6};
 let classes = [], activeView = 'normal';
@@ -12,16 +12,25 @@ function parseMeeting(text) { const cleaned=text.trim().replace(/^\(([^)]+)\)/,'
 function parseSchedule() {
   const parsed=[],errors=[];
   input.value.split(/\r?\n/).forEach((line,i)=>{
-    if(!line.trim())return; const p=line.split('|').map(x=>x.trim()),lecture=parseMeeting(p[1]||''),discussion=parseMeeting(p[2]||'')||parseMeeting(p[3]||'');
-    if(p.length<4||!lecture){errors.push(i+1);return;}
-    const separateRooms=Boolean(discussion && p.length>=9);
-    const offset=discussion?1:0, rooms=separateRooms?[p[2],p[4]]:(p[3+offset]||'Room not listed').split('/').map(room=>room.trim());
-    const meetings=[{...lecture,label:'Lecture',room:rooms[0]||'Room not listed'}];
-    if(discussion)meetings.push({...discussion,label:'Discussion',room:rooms[1]||rooms[0]||'Room not listed'});
-    const dataStart=separateRooms?5:2+offset, finalTime=p[dataStart+2]||'', finalStart=parseTime(finalTime.split(/\s*[-–]\s*/)[0]||''), finalEnd=parseTime(finalTime.split(/\s*[-–]\s*/)[1]||'');
-    parsed.push({id:`${p[0]}-${i}-${Date.now()}`,code:p[0],meetings,teacher:p[dataStart]||'Teacher not listed',finalDate:p[dataStart+1]||'',finalStart,finalEnd,finalRoom:p[dataStart+3]||rooms[0]||'Room not listed',enrolled:false});
+    if(!line.trim())return;
+    const p=line.split('|').map(x=>x.trim());
+    const lecture=parseMeeting(p[1]||''), discussion=parseMeeting(p[3]||'');
+    if(p.length!==9 || !lecture || !discussion){errors.push(i+1);return;}
+    const finalRange=(p[7]||'').split(/\s*[-–]\s*/);
+    const finalStart=parseTime(finalRange[0]||''), finalEnd=parseTime(finalRange[1]||'');
+    parsed.push({
+      id:`${p[0]}-${i}-${Date.now()}`,
+      code:p[0],
+      meetings:[
+        {...lecture,label:'Lecture',room:p[2]||'Room not listed'},
+        {...discussion,label:'Discussion',room:p[4]||'Room not listed'}
+      ],
+      teacher:p[5]||'Teacher not listed',
+      finalDate:p[6]||'', finalStart, finalEnd,
+      finalRoom:p[8]||'Room not listed', enrolled:false
+    });
   });
-  classes=parsed; document.querySelector('#import-message').textContent=errors.length?`Loaded ${parsed.length} section(s). Could not read line ${errors.join(', ')}.`:`Loaded ${parsed.length} section(s). Choose the sections you want.`; render();
+  classes=parsed; document.querySelector('#import-message').textContent=errors.length?`Loaded ${parsed.length} section(s). Check line ${errors.join(', ')}: use all 9 columns in the shown order.`:`Loaded ${parsed.length} section(s). Choose the sections you want.`; render();
 }
 function renderCourseList() {
   const list=document.querySelector('#course-list'),groups=Object.groupBy(classes,c=>c.code); list.innerHTML='';
