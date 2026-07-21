@@ -7,20 +7,23 @@ const input = document.querySelector('#schedule-input');
 function parseTime(value) { const match=value.trim().match(/(\d{1,2}):(\d{2})\s*(am|pm)/i); if(!match)return null; let hour=+match[1]%12; if(match[3].toLowerCase()==='pm')hour+=12; return hour*60 + +match[2]; }
 function formatTime(minutes) { if(minutes===null)return 'Time not listed'; const hour=Math.floor(minutes/60),minute=minutes%60; return `${hour%12||12}:${String(minute).padStart(2,'0')}${hour>=12?'pm':'am'}`; }
 function parseMeeting(value) { const cleaned=value.trim().replace(/^\(([^)]+)\)/,'$1').replace(/–/g,'-'); const match=cleaned.match(/^([MTWRFSU]+)\s+(.+)$/i); if(!match)return null; const range=match[2].split(/\s*-\s*/),start=parseTime(range[0]||''),end=parseTime(range[1]||''); if(range.length!==2||start===null||end===null)return null; return {days:[...match[1].toUpperCase()].map(day=>dayMap[day]).filter(day=>day!==undefined),start,end}; }
+function parseMeetingSafe(value) { const cleaned=value.trim().replace(/^\(([^)]+)\)/,'$1'); const match=cleaned.match(/^([MTWRFSU]+)\s+(.+)$/i); if(!match)return null; const range=cleaned.match(/^([MTWRFSU]+)\s+(.+)$/i)[2].split(/\s*[\u002D\u2013\u2014]\s*/); const start=parseTime(range[0]||''),end=parseTime(range[1]||''); return range.length===2&&start!==null&&end!==null?{days:[...match[1].toUpperCase()].map(day=>dayMap[day]).filter(day=>day!==undefined),start,end}:null; }
+function splitTimeRange(value) { return value.trim().split(/\s*[\u002D\u2013\u2014]\s*/); }
 function parseSchedule() {
   const parsed=[],errors=[];
   input.value.split(/\r?\n/).forEach((line,index)=>{
     if(!line.trim())return;
     const fields=line.split('|').map(value=>value.trim());
-    const lecture=parseMeeting(fields[1]||''), hasDiscussion=!/^n\/?a$/i.test(fields[2]||''), discussion=hasDiscussion?parseMeeting(fields[2]||''):null;
+    const lecture=parseMeetingSafe(fields[1]||''), hasDiscussion=!/^n\/?a$/i.test(fields[2]||''), discussion=hasDiscussion?parseMeetingSafe(fields[2]||''):null;
     if(fields.length!==8||!lecture||(hasDiscussion&&!discussion)){errors.push(index+1);return;}
-    const rooms=(fields[4]||'').split('/').map(room=>room.trim());
+    const rooms=hasDiscussion?(fields[4]||'').split('/').map(room=>room.trim()):[(fields[4]||'').trim()];
     const finalRange=(fields[6]||'').replace(/–/g,'-').split(/\s*-\s*/);
     parsed.push({
       id:`${fields[0]}-${index}-${Date.now()}`,
       code:fields[0], courseCode:fields[0].replace(/\s*\[[^\]]+\]\s*$/,'').trim(), sectionCode:(fields[0].match(/\[([^\]]+)\]\s*$/)||[])[1]||'',
       meetings:[{...lecture,label:'Lecture',room:rooms[0]||'Room not listed'},...(discussion?[{...discussion,label:'Discussion',room:rooms[1]||rooms[0]||'Room not listed'}]:[])],
-      discussionAvailable:hasDiscussion, teacher:fields[3]||'Teacher not listed', finalDate:fields[5]||'', finalStart:parseTime(finalRange[0]||''), finalEnd:parseTime(finalRange[1]||''), finalRoom:fields[7]||'Room not listed', enrolled:false
+      discussionAvailable:hasDiscussion, teacher:fields[3]||'Teacher not listed', finalDate:fields[5]||'', finalStart:parseTime(finalRange[0]||''), finalEnd:parseTime(finalRange[1]||''), finalRoom:fields[7]||'Room not listed', enrolled:false,
+      finalStart:parseTime(splitTimeRange(fields[6]||'')[0]||''), finalEnd:parseTime(splitTimeRange(fields[6]||'')[1]||'')
     });
   });
   classes=parsed; document.querySelector('#import-message').textContent=errors.length?`Loaded ${parsed.length} section(s). Check line ${errors.join(', ')}: use all 8 columns in the shown order.`:`Loaded ${parsed.length} section(s). Choose the sections you want.`; render();
