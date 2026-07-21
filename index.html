@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Class Schedule Planner</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">STUDENT PLANNER</p>
+        <h1>Build your class schedule</h1>
+        <p class="subtitle">Paste class sections, enroll in the ones you want, and see your week at a glance.</p>
+      </div>
+      <div class="view-switch" aria-label="Calendar view">
+        <button class="view-button active" data-view="normal">Normal week</button>
+        <button class="view-button" data-view="finals">Finals week</button>
+      </div>
+    </header>
+
+    <section class="setup-card">
+      <div class="section-heading">
+        <div>
+          <h2>Import class sections</h2>
+          <p>One class per line: <code>code | days time | teacher | room | final date | final time | final room</code></p>
+        </div>
+        <button id="load-sample" class="text-button">Load sample</button>
+      </div>
+      <textarea id="schedule-input" spellcheck="false" aria-label="Schedule text input" placeholder="CCE-002 | MW 11:00am-12:20pm | Kerry White | PODEM 0274 | 2026-12-08 | 11:30am-2:29pm | PODEM 0274"></textarea>
+      <div class="import-actions">
+        <span id="import-message" role="status">Add your schedule to get started.</span>
+        <button id="parse-button" class="primary-button">Format schedule</button>
+      </div>
+    </section>
+
+    <section class="planner-layout">
+      <aside class="course-panel">
+        <div class="panel-title"><h2>Class sections</h2><span id="course-count">0 courses</span></div>
+        <div id="course-list" class="course-list"><div class="empty-state">Your formatted classes will appear here.</div></div>
+      </aside>
+      <section class="calendar-panel">
+        <div class="calendar-toolbar">
+          <div><h2 id="calendar-title">Normal week</h2><p id="calendar-caption">Enrolled sections are shown in blue.</p></div>
+          <span id="enrollment-count" class="enrollment-pill">0 enrolled</span>
+        </div>
+        <div id="calendar-wrap" class="calendar-wrap"><div id="calendar" class="calendar"></div></div>
+      </section>
+    </section>
+  </main>
+  <template id="course-template">
+    <article class="course-group">
+      <button class="course-toggle" aria-expanded="true"><span class="chevron">⌄</span><span class="course-code"></span><span class="section-total"></span></button>
+      <div class="sections"></div>
+    </article>
+  </template>
+  <script src="app.js"></script>
+</body>
+</html>
