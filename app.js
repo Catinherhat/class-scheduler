@@ -1,6 +1,6 @@
-const sample = `SE-101A | (TR) 2:00pm–3:20pm | MOS 0114 | (W) 1:00pm–1:50pm | MOS 0113 | Machel Morrison | 2026-12-10 | 3:00pm–5:59pm | MOS 0114
-CCE-002 | (MW) 11:00am–12:20pm | PODEM 0274 | (F) 10:00am–10:50am | PODEM 0275 | Kerry White | 2026-12-08 | 11:30am–2:29pm | PODEM 0274
-CCE-002 | (MW) 2:00pm–3:20pm | PODEM 0273 | (F) 1:00pm–1:50pm | PODEM 0276 | Kerry White | 2026-12-09 | 3:00pm–5:59pm | PODEM 0273`;
+const sample = `PHYS-002C [001] | MWF 9:00am–9:50am | T 2:00pm–2:50pm | Tzer Han Tan | GH 242 / PODEM 1A22 | 2026-12-09 | 8:00am–10:59am | GH 242
+CCE-002 | MW 11:00am–12:20pm | F 10:00am–10:50am | Kerry White | PODEM 0274 / PODEM 0275 | 2026-12-08 | 11:30am–2:29pm | PODEM 0274
+CCE-002 | MW 2:00pm–3:20pm | F 1:00pm–1:50pm | Kerry White | PODEM 0273 / PODEM 0276 | 2026-12-09 | 3:00pm–5:59pm | PODEM 0273`;
 const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 const dayMap = {M:0,T:1,W:2,R:3,F:4,S:5,U:6};
 let classes = [], activeView = 'normal';
@@ -15,20 +15,21 @@ function parseSchedule() {
   input.value.split(/\r?\n/).forEach((line,i)=>{
     if(!line.trim())return;
     const p=line.split('|').map(x=>x.trim());
-    const lectures=parseMeetings(p[1]||''), discussion=parseMeeting(p[3]||'');
-    if(p.length!==9 || !lectures.length || !discussion){errors.push(i+1);return;}
-    const finalRange=(p[7]||'').split(/\s*[-–]\s*/);
+    const lectures=parseMeetings(p[1]||''), discussion=parseMeeting(p[2]||'');
+    if(p.length!==8 || !lectures.length || !discussion){errors.push(i+1);return;}
+    const rooms=(p[4]||'').split('/').map(room=>room.trim());
+    const finalRange=(p[6]||'').split(/\s*[-–]\s*/);
     const finalStart=parseTime(finalRange[0]||''), finalEnd=parseTime(finalRange[1]||'');
     parsed.push({
       id:`${p[0]}-${i}-${Date.now()}`,
       code:p[0],
-      meetings:[...lectures.map(lecture=>({...lecture,label:'Lecture',room:p[2]||'Room not listed'})), {...discussion,label:'Discussion',room:p[4]||'Room not listed'}],
-      teacher:p[5]||'Teacher not listed',
-      finalDate:p[6]||'', finalStart, finalEnd,
-      finalRoom:p[8]||'Room not listed', enrolled:false
+      meetings:[...lectures.map(lecture=>({...lecture,label:'Lecture',room:rooms[0]||'Room not listed'})), {...discussion,label:'Discussion',room:rooms[1]||rooms[0]||'Room not listed'}],
+      teacher:p[3]||'Teacher not listed',
+      finalDate:p[5]||'', finalStart, finalEnd,
+      finalRoom:p[7]||'Room not listed', enrolled:false
     });
   });
-  classes=parsed; document.querySelector('#import-message').textContent=errors.length?`Loaded ${parsed.length} section(s). Check line ${errors.join(', ')}: use all 9 columns in the shown order.`:`Loaded ${parsed.length} section(s). Choose the sections you want.`; render();
+  classes=parsed; document.querySelector('#import-message').textContent=errors.length?`Loaded ${parsed.length} section(s). Check line ${errors.join(', ')}: use all 8 columns in the shown order.`:`Loaded ${parsed.length} section(s). Choose the sections you want.`; render();
 }
 function renderCourseList() {
   const list=document.querySelector('#course-list'),groups=Object.groupBy(classes,c=>c.code); list.innerHTML='';
